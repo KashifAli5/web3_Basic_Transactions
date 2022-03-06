@@ -16,9 +16,7 @@ const getEthereumContract = () => {
     const transactionContract = new ethers.Contract(contractAddress, contractABI, signer);
 
     console.log({
-        provider,
-        signer,
-        transactionContract
+        transactionContract,
     })
     console.log('transaction func run');
 }
@@ -26,7 +24,9 @@ const getEthereumContract = () => {
 export const TransactionProvider = ({ children }) => {
     const [currentAccount, setCurrentAccount] = useState('');
     // to get form data
-    const [formData, setFormData] = useState({ addresssTo: '', amount: '', keyword: '', message: ''});
+    const [formData, setFormData] = useState({ addressTo: '', amount: '', keyword: '', message: ''});
+    const [isLoading, setIsLoading] = useState(false);
+    const [transactionCount, setTransactionCount] = useState(localStorage.getItem("transactionCount"));
 
     const handleChange = (e, name) => {
         setFormData((prevState) => ({ ...prevState, [name]: e.target.value }));
@@ -74,14 +74,42 @@ export const TransactionProvider = ({ children }) => {
 
     const sendTransaction = async () => {
         try {
-            if (!ethereum) return alert ("Please install metamask");
+            if (ethereum) {
 
             const { addressTo, amount, keyword, message } = formData;
-            getEthereumContract();
+            const transactionContract = getEthereumContract();
+            const parsedAmount = ethers.utils.parseEther(amount); // to convernting normal ammount to ether value unit
 
+            await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: currentAccount,
+                    to: addressTo,
+                    gas: '0x5208', // 21000 GWEI
+                    value: parsedAmount._hex,
+                
+                }],
+            });
+
+            const transactionHash = await transactionsContract.addToBlockchain(addressTo, parsedAmount, message, keyword);
+
+            setIsLoading(true);
+            console.log(`Loading - ${transactionHash.hash}`);
+            await transactionHash.wait();
+            console.log(`Success - ${transactionHash.hash}`);
+            setIsLoading(false);
+
+            const transactionsCount = await transactionsContract.getTransactionCount();
+
+            setTransactionCount(transactionsCount.toNumber());
+
+            setTransactionCount(transactionCount.toNumber());
+        } else {
+            console.log('some issue with eth');
+        }
             
         } catch (error) {
-            throw new Error("No ethereum object.");
+            throw new Error("No ethereum object....");
         }
     }
 
